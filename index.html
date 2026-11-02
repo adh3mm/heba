@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOVE YOU HEBA</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: #07081a; overflow: hidden; }
+  canvas { position: fixed; top: 0; left: 0; display: block; }
+</style>
+</head>
+<body>
+<canvas id="wheel"></canvas>
+<script>
+// =====================================================
+//  100 WAYS TO SAY SORRY  ->  LOVE YOU HEBA
+//  عجلة بتلف فيها 100 اعتذار على خلفية قلوب بتطلع لفوق.
+// =====================================================
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+
+// ---------- الإعدادات ----------
+const TICK = 16;        // كل كام ميلي ثانية خطوة واحدة
+const INTERVAL = 9;     // كام خطوة بين كل اعتذار والتاني
+const R0 = 182;         // الدايرة اللي بتبدأ منها الأشعة
+const R_MAX = 342;      // أقصى مكان ممكن أطول جملة توصله
+const RING = 366;       // الحلقة الدهبية الكبيرة
+const SERIF = 'Georgia, "Times New Roman", serif';
+const SANS = 'Helvetica, Arial, sans-serif';
+const PX = 4 / 3;       // تحويل حجم الخط من points لـ pixels
+
+// الألوان (كل لون = أحمر، أخضر، أزرق من 0 لـ 1)
+const BG_TOP = [0.028, 0.035, 0.105];
+const BG_BOT = [0.17, 0.075, 0.19];
+const BGC    = [0.06, 0.05, 0.13];
+const CREAM  = [1.0, 0.95, 0.88];
+const GOLD   = [0.86, 0.69, 0.40];
+const FLASH  = [1.0, 0.97, 0.92];
+
+const STOPS = [
+  [0.42, 0.52, 0.98],   // indigo
+  [0.68, 0.48, 0.96],   // violet
+  [0.96, 0.46, 0.68],   // rose
+  [1.00, 0.62, 0.45],   // coral
+  [1.00, 0.82, 0.46],   // gold
+];
+
+const PHRASES = [
+  "I'm so sorry", "I was late", "Please forgive me",
+  "I lost track of time", "I should have called", "I should have texted you",
+  "I left you waiting", "I'm sorry I made you worry", "I'm sorry for the worry",
+  "I stayed out too long", "I should've come home early", "I'm sorry I stayed out late",
+  "I put friends before you", "I forgot to check the time", "My phone was on silent",
+  "I should have told you", "I'm sorry I didn't answer", "You waited up for me",
+  "I'm sorry you waited alone", "I should have been there", "I owe you an apology",
+  "I ruined our evening", "I missed our time together", "I'm sorry I came back late",
+  "I didn't mean to worry you", "I wasn't watching the time", "I should have let you know",
+  "I'm sorry I didn't call you", "I'm sorry I kept you up", "I wasted your time",
+  "I should have checked in", "I'm sorry I made you wait", "You deserved a message",
+  "You deserved a call", "I'm sorry I wasn't home", "I'm sorry I wasn't with you",
+  "I know you were worried", "I know it upset you", "I never meant to upset you",
+  "I'm sorry I forgot to text", "I should have left earlier", "I let the night run away",
+  "I'm sorry for the late night", "I took your patience too far", "I'm sorry you felt alone",
+  "I'm sorry you felt forgotten", "I'm sorry I made you anxious", "I wish I had called",
+  "I wish I'd come back sooner", "I should have thought of you", "I wasn't considerate",
+  "I'm sorry I missed your call", "I let time slip away", "I'm sorry I was out so late",
+  "I'm sorry for the long wait", "I should've kept you posted", "I should've said where I was",
+  "I'm sorry for the lost night", "I should have picked up", "I hate that you were worried",
+  "I won't make you wait again", "I'll text you next time", "I'll call you next time",
+  "I'll keep my phone close", "I'll watch the time, promise", "I'll be home on time",
+  "I'll tell you before I leave", "I'll do better, I promise", "I'll be more thoughtful",
+  "I'm learning from this", "Tell me how to fix it", "Let me make it up to you",
+  "I want to make it right", "Let me make tonight right", "I miss you, and I'm sorry",
+  "You matter more than a night", "I can't lose your trust", "I'd take back the late night",
+  "I wish I could undo it", "I'm sorry for every minute", "You didn't deserve to wait",
+  "It was never your fault", "You did nothing wrong", "I'm sorry if you felt small",
+  "I'm sorry I was careless", "I'm sorry I wasn't there", "I should've known better",
+  "I'm sorry I let you down", "I'm sorry from my heart", "I'm sorry, and I mean it",
+  "You can trust me again", "Give me another chance", "You come first, always",
+  "Thank you for your patience", "Forgive me when you can", "I'm grateful for you",
+  "I'm here with you now", "I love you, and I'm sorry", "Will you forgive me?",
+  "I'm sorry. Always.",
+];
+const N = PHRASES.length;
+if (N !== 100) console.warn("لازم يكونوا 100 جملة، لكن العدد =", N);
+
+// ---------- دوال مساعدة ----------
+function hx(c) {
+  return "#" + c.map(v => {
+    const n = Math.floor(Math.max(0, Math.min(1, v)) * 255);
+    return n.toString(16).padStart(2, "0");
+  }).join("");
+}
+function rgba(c, a) {
+  const f = v => Math.floor(Math.max(0, Math.min(1, v)) * 255);
+  return `rgba(${f(c[0])},${f(c[1])},${f(c[2])},${a})`;
+}
+function mix(a, b, k) { return a.map((p, i) => p + (b[i] - p) * k); }
+function clamp(v) { return Math.max(0, Math.min(1, v)); }
+function palette(k) {
+  k = clamp(k) * (STOPS.length - 1);
+  const i = Math.min(Math.floor(k), STOPS.length - 2);
+  return mix(STOPS[i], STOPS[i + 1], k - i);
+}
+const easeOut = u => 1 - Math.pow(1 - u, 3);
+
+// رقم عشوائي "ثابت" عشان كل مرة نفس الترتيب
+let seed = 7;
+function rand() {
+  seed = (seed * 16807) % 2147483647;
+  return (seed - 1) / 2147483646;
+}
+const uniform = (a, b) => a + (b - a) * rand();
+const choice = arr => arr[Math.floor(rand() * arr.length)];
+
+// ---------- حجم الشاشة ----------
+let VW = 800, VH = 800;   // مقاس النافذة
+let S = 1;                // مقياس العجلة (العجلة 800×800 جوه أصغر بُعد)
+let HW = 400, HH = 400;   // نص عرض ونص طول الدنيا بوحدات العجلة
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  VW = window.innerWidth;
+  VH = window.innerHeight;
+  canvas.width = Math.round(VW * dpr);
+  canvas.height = Math.round(VH * dpr);
+  canvas.style.width = VW + "px";
+  canvas.style.height = VH + "px";
+  S = Math.min(VW, VH) / 800;
+  HW = VW / (2 * S);
+  HH = VH / (2 * S);
+}
+resize();
+function toWheelSpace() {
+  const k = canvas.width / VW;   // = dpr
+  ctx.setTransform(S * k, 0, 0, S * k, canvas.width / 2, canvas.height / 2);
+}
+
+// ---------- القلوب اللي في الخلفية ----------
+const hearts = [];
+function spawnHeart(anywhere) {
+  const sz = uniform(6, 26);
+  return {
+    x: uniform(-HW - 30, HW + 30),
+    y: anywhere ? uniform(-HH - 30, HH + 30) : HH + 30 + sz,
+    sz,
+    vy: uniform(0.15, 0.5),
+    sway: uniform(0.1, 0.35),
+    ph: uniform(0, 6.28),
+    color: palette(uniform(0.3, 1)),
+    alpha: uniform(0.2, 0.62),
+  };
+}
+for (let i = 0; i < 120; i++) hearts.push(spawnHeart(true));
+
+function heartPath(x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + s * 0.9);
+  ctx.bezierCurveTo(x - s * 1.3, y - s * 0.1, x - s * 0.7, y - s * 1.1, x, y - s * 0.35);
+  ctx.bezierCurveTo(x + s * 0.7, y - s * 1.1, x + s * 1.3, y - s * 0.1, x, y + s * 0.9);
+  ctx.closePath();
+}
+
+// ---------- الأشعة (الجمل اللي حوالين العجلة) ----------
+let fs = 9;
+while (fs > 6) {
+  ctx.font = `${fs * PX}px ${SANS}`;
+  const widest = Math.max(...PHRASES.map(p => ctx.measureText(p).width));
+  if (widest <= R_MAX - R0) break;
+  fs -= 1;
+}
+
+const spokes = PHRASES.map((text, i) => ({
+  text,
+  th: Math.PI / 2 - (2 * Math.PI * i) / N,
+  color: palette(i / (N - 1)),
+  born: null,
+  slide: 18,
+  fill: BGC,
+}));
+
+// ---------- الحالة ----------
+let tick = 0;
+let rot = 0.0;
+let shown = 0;
+let cur = null;
+let curT = 0;
+let doneT = null;     // الخطوة اللي خلصت فيها كل الجمل
+
+const center = { title: BGC, rule: BGC, phrase: BGC, counter: BGC, text: "", num: "" };
+
+function showCenter(i) {
+  cur = i;
+  curT = tick;
+  center.text = PHRASES[i];
+  center.num = "N° " + String(i + 1).padStart(3, "0");
+}
+
+// ---------- التحديث: بيتنفذ كل 16 ميلي ثانية ----------
+function update() {
+  tick += 1;
+  rot -= 0.0006 + (shown >= N ? 0.0006 : 0);
+
+  // نظهر الاعتذار اللي بعده
+  if (shown < N && tick % INTERVAL === 0) {
+    spokes[shown].born = tick;
+    showCenter(shown);
+    shown += 1;
+    if (shown === N) doneT = tick;
+  }
+
+  // لما نخلص: نفضل نغيّر الجملة اللي في النص 
+  if (doneT && tick - doneT > 150 && tick - curT > 170) {
+    const others = [];
+    for (let k = 0; k < N; k++) if (k !== cur) others.push(k);
+    showCenter(choice(others));
+  }
+
+  // الأشعة
+  const sweep = (tick * 0.22) % N;
+  spokes.forEach((p, i) => {
+    if (p.born === null) return;
+    const u = clamp((tick - p.born) / 40);
+    const e = 1 - Math.pow(1 - u, 3);
+    p.slide = (1 - e) * 18;
+    let glow = 0.0;
+    if (doneT) {
+      let d = Math.abs(i - sweep);
+      d = Math.min(d, N - d);
+      glow = Math.exp(-Math.pow(d / 3.0, 2)) * 0.65;
+    }
+    const pop = u < 0.6 ? 0.9 * Math.sin(Math.PI * clamp((u - 0.1) / 0.5)) : 0;
+    p.fill = mix(mix(BGC, p.color, 0.82 * e), FLASH, Math.max(glow, pop));
+  });
+
+  // النص اللي في النص
+  const k = clamp((tick - 8) / 40);
+  center.title = mix(BGC, GOLD, 0.85 * k);
+  center.rule = mix(BGC, GOLD, 0.5 * k);
+  if (cur !== null) {
+    const fe = clamp((tick - curT) / 14);
+    center.phrase = mix(BGC, mix(CREAM, spokes[cur].color, 0.18), fe);
+    center.counter = mix(BGC, GOLD, 0.75 * fe);
+  }
+  // القلوب بتطلع لفوق وبتتهز يمين وشمال
+  hearts.forEach((h, i) => {
+    h.y -= h.vy;
+    h.x += Math.sin(tick * 0.02 + h.ph) * h.sway;
+    if (h.y < -HH - 40) hearts[i] = spawnHeart(false);
+  });
+
+}
+
+// ---------- الرسم ----------
+function drawSky() {
+  // خلفية متدرجة بتملا الشاشة كلها
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  for (let i = 0; i <= 16; i++) {
+    const t = i / 16;
+    g.addColorStop(t, hx(mix(BG_TOP, BG_BOT, Math.pow(t, 1.4))));
+  }
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  toWheelSpace();
+}
+
+function drawHearts() {
+  hearts.forEach(h => {
+    // القلوب ما بتظهرش جوه العجلة عشان الجمل تفضل واضحة
+    const r = Math.hypot(h.x, h.y);
+    const vis = clamp((r - (RING + 6)) / 40);
+    if (vis <= 0) return;
+    const pulse = 0.8 + 0.2 * Math.sin(tick * 0.04 + h.ph);
+    ctx.save();
+    ctx.translate(h.x, h.y);
+    ctx.rotate(Math.sin(tick * 0.015 + h.ph) * 0.35);
+    ctx.fillStyle = rgba(h.color, h.alpha * 0.28 * vis);     // هالة ناعمة
+    heartPath(0, 0, h.sz * 1.55 * pulse);
+    ctx.fill();
+    ctx.fillStyle = rgba(h.color, h.alpha * vis * pulse);
+    heartPath(0, 0, h.sz * pulse);
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+function drawRings() {
+  ctx.lineWidth = 1;
+  [[R0 - 14, 0.35], [R0 - 19, 0.12], [RING, 0.18]].forEach(([rad, k]) => {
+    ctx.strokeStyle = hx(mix(BG_TOP, GOLD, k));
+    ctx.beginPath();
+    ctx.arc(0, 0, rad, 0, Math.PI * 2);
+    ctx.stroke();
+  });
+}
+
+function drawArc() {
+  const extent = Math.max(0.01, Math.min(359.9, (360 * shown) / N));
+  ctx.strokeStyle = hx(GOLD);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, 0, RING, -Math.PI / 2, -Math.PI / 2 + (extent * Math.PI) / 180);
+  ctx.stroke();
+}
+
+function drawSpokes() {
+  ctx.font = `${fs * PX}px ${SANS}`;
+  ctx.textBaseline = "middle";
+  const TWO_PI = 2 * Math.PI;
+  spokes.forEach(p => {
+    if (p.born === null) return;
+    const a = (((p.th + rot) % TWO_PI) + TWO_PI) % TWO_PI;
+    const rr = R0 + p.slide;
+    const x = rr * Math.cos(a);
+    const y = -rr * Math.sin(a);
+    const flip = a > Math.PI / 2 && a < (3 * Math.PI) / 2;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-a + (flip ? Math.PI : 0));
+    ctx.textAlign = flip ? "right" : "left";
+    ctx.fillStyle = hx(p.fill);
+    ctx.fillText(p.text, 0, 0);
+    ctx.restore();
+  });
+}
+
+function wrap(text, maxW) {
+  const words = text.split(" ");
+  const lines = [];
+  let line = "";
+  words.forEach(w => {
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxW && line) {
+      lines.push(line);
+      line = w;
+    } else {
+      line = test;
+    }
+  });
+  lines.push(line);
+  return lines;
+}
+
+function drawCenter() {
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  ctx.font = `bold ${8 * PX}px ${SANS}`;
+  ctx.fillStyle = hx(center.title);
+  ctx.fillText("I  L O V E  Y O U", 0, -72);
+  ctx.fillText("H E B A", 0, -56);
+
+  ctx.strokeStyle = hx(center.rule);
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(-26, 52);
+  ctx.lineTo(26, 52);
+  ctx.stroke();
+
+  ctx.font = `italic ${19 * PX}px ${SERIF}`;
+  ctx.fillStyle = hx(center.phrase);
+  const lines = wrap(center.text, 250);
+  const lh = 19 * PX * 1.15;
+  lines.forEach((ln, i) => {
+    ctx.fillText(ln, 0, -2 + (i - (lines.length - 1) / 2) * lh);
+  });
+
+  ctx.font = `bold ${9 * PX}px ${SANS}`;
+  ctx.fillStyle = hx(center.counter);
+  ctx.fillText(center.num, 0, 72);
+}
+
+function draw() {
+  drawSky();
+  drawHearts();
+  drawRings();
+  drawArc();
+  drawSpokes();
+  drawCenter();
+}
+
+// ---------- اللوب الرئيسي ----------
+window.addEventListener("resize", resize);
+
+let last = performance.now();
+let acc = 0;
+function frame(now) {
+  acc += now - last;
+  last = now;
+  if (acc > 250) acc = 250;
+  while (acc >= TICK) {
+    update();
+    acc -= TICK;
+  }
+  draw();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+</script>
+</body>
+</html>
