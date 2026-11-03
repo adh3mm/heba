@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Just For You</title>
+<meta name="description" content="A lily bouquet that grows and blooms out of code characters.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500;1,600&display=swap">
+<style>
+/* Layout: one full-screen dark stage. A canvas draws the bouquet as colored code characters; the greeting sits in the top band. */
+:root {
+  --bg: #050507;
+  --ink: #f6f1c9;
+  --glow: rgba(255, 130, 175, 0.35);
+  --serif: "Cormorant Garamond", Georgia, "Times New Roman", serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 0;
+}
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  background: var(--bg);
+  cursor: pointer;
+}
+header {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  padding-block: clamp(24px, 7vh, 64px) 0;
+  pointer-events: none;
+}
+h1 {
+  margin: 0;
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(34px, 10vw, 60px);
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+  text-shadow: 0 0 24px var(--glow);
+}
+</style>
+
+</head>
+<body>
+<header><h1>Just For You Ro7y&#128151;</h1></header>
+<canvas id="c" role="img" aria-label="A bouquet of lilies made of code characters that grows and blooms, on a dark starry background"></canvas>
+
+<script>
+(function () {
+  var cv = document.getElementById('c');
+  var ctx = cv.getContext('2d');
+  var off = document.createElement('canvas');
+  var o = off.getContext('2d', { willReadFrequently: false });
+  var tmp = document.createElement('canvas');
+  var t = tmp.getContext('2d');
+  var BG = '#050507';
+  var CYCLE = 13.4;
+  var CHARS = 'aeos0689#%&@=;[]{}()<>*/xyzmwkgqB8E$'.split('');
+  var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function mulberry(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var q = Math.imul(a ^ a >>> 15, 1 | a);
+      q = q + Math.imul(q ^ q >>> 7, 61 | q) ^ q;
+      return ((q ^ q >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  var rnd = mulberry(20261104);
+  function clamp01(x) { return x < 0 ? 0 : x > 1 ? 1 : x; }
+  function smooth(x) { x = clamp01(x); return x * x * (3 - 2 * x); }
+  function lerp(a, b, k) { return a + (b - a) * k; }
+
+  /* palettes: [center, body, tip] */
+  var P = {
+    red:    ['#a01010', '#e02420', '#ff6a4c'],
+    pink:   ['#801c78', '#d84cc8', '#f6a8ee'],
+    cream:  ['#7e8a4c', '#dad3c6', '#fffaf0'],
+    tan:    ['#8a4826', '#d49c72', '#f8dcbc'],
+    yellow: ['#a87810', '#eac22a', '#fff49e'],
+    mauve:  ['#4a1030', '#9c3464', '#d47eaa'],
+    dark:   ['#2e0608', '#841418', '#c43434'],
+    peach:  ['#9a5a30', '#ecb484', '#ffe6cc'],
+    orange: ['#a64818', '#f48c3a', '#ffd4a4'],
+    bud:    ['#246a2a', '#4ca842', '#a2e676'],
+    budr:   ['#4a0c18', '#8a1c30', '#c4485c']
+  };
+
+  /* u: sideways, h: height above the base, r: bloom radius (all in units of S, the bouquet width). Listed back to front. */
+  var F = [
+    { u: -0.094, h: 1.40, r: 0.050, pal: P.bud,    sq: 1,    rot: 0.1,  a0: 0,    maxB: 0.14 },
+    { u:  0.155, h: 1.405, r: 0.045, pal: P.budr,  sq: 1,    rot: -0.15, a0: 0,   maxB: 0.14 },
+    { u:  0.030, h: 1.31, r: 0.19, pal: P.tan,     sq: 0.78, rot: 0.1,  a0: 0.2,  maxB: 1 },
+    { u: -0.170, h: 1.27, r: 0.15, pal: P.pink,    sq: 0.72, rot: -0.3, a0: -0.2, maxB: 1 },
+    { u:  0.130, h: 1.22, r: 0.15, pal: P.orange,  sq: 0.72, rot: 0.35, a0: 0.3,  maxB: 1 },
+    { u: -0.255, h: 1.19, r: 0.20, pal: P.cream,   sq: 0.74, rot: -0.35, a0: 0.1, maxB: 1 },
+    { u:  0.260, h: 1.19, r: 0.20, pal: P.yellow,  sq: 0.74, rot: 0.3,  a0: -0.1, maxB: 1 },
+    { u: -0.350, h: 0.90, r: 0.17, pal: P.yellow,  sq: 0.7,  rot: -0.45, a0: 0.2, maxB: 1 },
+    { u:  0.350, h: 0.92, r: 0.19, pal: P.mauve,   sq: 0.7,  rot: 0.4,  a0: -0.2, maxB: 1 },
+    { u: -0.100, h: 0.93, r: 0.15, pal: P.pink,    sq: 0.75, rot: 0.2,  a0: 0.4,  maxB: 1 },
+    { u:  0.400, h: 0.64, r: 0.14, pal: P.peach,   sq: 0.7,  rot: 0.5,  a0: 0,    maxB: 1 },
+    { u: -0.400, h: 0.62, r: 0.14, pal: P.red,     sq: 0.7,  rot: -0.5, a0: 0.3,  maxB: 1 },
+    { u: -0.390, h: 0.40, r: 0.15, pal: P.yellow,  sq: 0.68, rot: -0.4, a0: -0.3, maxB: 1 },
+    { u:  0.310, h: 0.38, r: 0.17, pal: P.dark,    sq: 0.7,  rot: 0.35, a0: 0.1,  maxB: 1 },
+    { u: -0.010, h: 1.085, r: 0.28, pal: P.red,    sq: 0.8,  rot: -0.05, a0: 0.1, maxB: 1 },
+    { u: -0.236, h: 0.70, r: 0.27, pal: P.pink,    sq: 0.8,  rot: -0.25, a0: 0.15, maxB: 1 },
+    { u:  0.200, h: 0.68, r: 0.28, pal: P.cream,   sq: 0.82, rot: 0.1,  a0: -0.15, maxB: 1 },
+    { u: -0.030, h: 0.434, r: 0.27, pal: P.tan,    sq: 0.78, rot: 0.05, a0: 0.2,  maxB: 1 },
+    { u:  0.200, h: 0.30, r: 0.14, pal: P.orange,  sq: 0.7,  rot: 0.3,  a0: -0.2, maxB: 1 }
+  ];
+  F.forEach(function (f, i) {
+    f.bx = f.u * 0.15 + (rnd() - 0.5) * 0.04;
+    f.bend = (rnd() - 0.5) * 0.1;
+    f.d = 0.1 + rnd() * 0.5;
+    f.bs = 1.7 + i * 0.17;
+    f.ph = rnd() * 6.28;
+    f.pj = [];
+    for (var k = 0; k < 6; k++) f.pj.push({ l: 0.9 + rnd() * 0.14, a: (rnd() - 0.5) * 0.14, w: 0.92 + rnd() * 0.18 });
+    f.leaves = [];
+    for (k = 0; k < 3; k++) {
+      f.leaves.push({ t: 0.25 + k * 0.2 + rnd() * 0.05, side: (k + i) % 2 ? 1 : -1, len: 0.08 + rnd() * 0.06, jit: rnd() * 0.3 });
+    }
+  });
+
+  var B = [], i;
+  for (i = 0; i < 22; i++) {
+    var front = i >= 8, flat = i >= 19;
+    B.push({
+      front: front,
+      x0: (rnd() - 0.5) * 0.22,
+      x1: flat ? (i % 2 ? 1 : -1) * (0.3 + rnd() * 0.08) : (rnd() - 0.5) * (front ? 0.72 : 0.64),
+      hgt: flat ? 0.08 + rnd() * 0.08 : front ? 0.12 + rnd() * 0.2 : 0.16 + rnd() * 0.16,
+      w: front ? 0.018 + rnd() * 0.017 : 0.016 + rnd() * 0.012,
+      d: 0.2 + rnd() * 0.6
+    });
+  }
+
+  var stars = [];
+  for (var s = 0; s < 120; s++) stars.push({ x: rnd(), y: rnd(), p: rnd() * 6.28, sp: 0.6 + rnd() * 1.8, big: rnd() < 0.2 });
+
+  var W, H, dpr, S, cx, baseY, cw, ch, cwp, chp, cols, rows, pats = [];
+
+  function makePatterns() {
+    pats = [];
+    var tc = 64, tr = 64, r2 = mulberry(77);
+    for (var n = 0; n < 5; n++) {
+      var c = document.createElement('canvas');
+      c.width = tc * cwp; c.height = tr * chp;
+      var g = c.getContext('2d');
+      g.fillStyle = '#fff'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '700 ' + (chp * 1.22).toFixed(1) + 'px ui-monospace, "SF Mono", Menlo, Consolas, "Courier New", monospace';
+      for (var y = 0; y < tr; y++) for (var x = 0; x < tc; x++) {
+        g.fillText(CHARS[Math.floor(r2() * CHARS.length)], (x + 0.5) * cwp, (y + 0.55) * chp);
+      }
+      pats.push(t.createPattern(c, 'repeat'));
+    }
+  }
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 3);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    tmp.width = cv.width; tmp.height = cv.height;
+    S = Math.min(W * 0.94, H * 0.52);
+    var chT = Math.max(2.1, Math.min(5, S / 165));
+    chp = Math.max(5, Math.round(chT * dpr));
+    cwp = Math.max(3, Math.round(chp * 0.54));
+    ch = chp / dpr; cw = cwp / dpr;
+    cols = Math.ceil(cv.width / cwp); rows = Math.ceil(cv.height / chp);
+    off.width = cols; off.height = rows;
+    cx = W / 2;
+    baseY = Math.min(H * 0.94, H * 0.54 + 0.76 * S);
+    makePatterns();
+    if (reduced) draw(7.5);
+  }
+
+  function bz(p0, p1, p2, p3, k) {
+    var u = 1 - k, a = u * u * u, b = 3 * u * u * k, c = 3 * u * k * k, d = k * k * k;
+    return { x: a * p0.x + b * p1.x + c * p2.x + d * p3.x, y: a * p0.y + b * p1.y + c * p2.y + d * p3.y };
+  }
+
+  function leaf(x, y, ang, len, wid, c0, c1) {
+    if (len < 1) return;
+    o.save(); o.translate(x, y); o.rotate(ang);
+    var g = o.createLinearGradient(0, 0, len, 0);
+    g.addColorStop(0, c0); g.addColorStop(1, c1);
+    o.fillStyle = g;
+    o.beginPath(); o.moveTo(0, 0);
+    o.bezierCurveTo(len * 0.3, -wid, len * 0.75, -wid * 0.8, len, 0);
+    o.bezierCurveTo(len * 0.75, wid * 0.8, len * 0.3, wid, 0, 0);
+    o.fill();
+    o.strokeStyle = 'rgba(190,255,150,0.3)'; o.lineWidth = Math.max(0.7, wid * 0.12);
+    o.beginPath(); o.moveTo(len * 0.05, 0); o.lineTo(len * 0.85, 0); o.stroke();
+    o.restore();
+  }
+
+  function blade(b, T) {
+    var g = smooth((T - b.d) / 1.9) * (1 - smooth((T - 11.3) / 1.6));
+    if (g < 0.02) return;
+    var p0 = { x: cx + b.x0 * S, y: baseY + 2 };
+    var p2 = { x: cx + b.x1 * S + Math.sin(T * 0.8 + b.d * 9) * S * 0.005, y: baseY - b.hgt * S };
+    var p1 = { x: lerp(p0.x, p2.x, 0.2), y: lerp(p0.y, p2.y, 0.65) };
+    var N = 14, L = [], R = [], w0 = b.w * S, k;
+    for (k = 0; k <= N; k++) {
+      var tt = (k / N) * g, u = 1 - tt;
+      var x = u * u * p0.x + 2 * u * tt * p1.x + tt * tt * p2.x;
+      var y = u * u * p0.y + 2 * u * tt * p1.y + tt * tt * p2.y;
+      var dx = 2 * u * (p1.x - p0.x) + 2 * tt * (p2.x - p1.x);
+      var dy = 2 * u * (p1.y - p0.y) + 2 * tt * (p2.y - p1.y);
+      var n = Math.hypot(dx, dy) || 1;
+      var w = w0 * Math.pow(Math.sin(Math.PI * Math.min(1, (k / N) * 0.9 + 0.08)), 0.7) * (1 - (k / N) * 0.3);
+      L.push({ x: x - dy / n * w, y: y + dx / n * w });
+      R.push({ x: x + dy / n * w, y: y - dx / n * w });
+    }
+    var gr = o.createLinearGradient(p0.x, p0.y, p2.x, p2.y);
+    gr.addColorStop(0, '#1d6a2a'); gr.addColorStop(1, '#86e660');
+    o.fillStyle = gr; o.beginPath(); o.moveTo(L[0].x, L[0].y);
+    for (k = 1; k <= N; k++) o.lineTo(L[k].x, L[k].y);
+    for (k = N; k >= 0; k--) o.lineTo(R[k].x, R[k].y);
+    o.closePath(); o.fill();
+    o.strokeStyle = 'rgba(10,60,20,0.5)'; o.lineWidth = Math.max(0.8, w0 * 0.12);
+    o.beginPath();
+    for (k = 1; k <= N; k++) {
+      var mx = (L[k].x + R[k].x) / 2, my = (L[k].y + R[k].y) / 2;
+      if (k === 1) o.moveTo(mx, my); else o.lineTo(mx, my);
+    }
+    o.stroke();
+  }
+
+  function petal(len, wd, pal, open) {
+    var g = o.createLinearGradient(0, 0, len, 0);
+    g.addColorStop(0, pal[0]); g.addColorStop(0.3, pal[1]); g.addColorStop(0.72, pal[1]); g.addColorStop(1, pal[2]);
+    o.fillStyle = g;
+    o.beginPath(); o.moveTo(0, 0);
+    o.bezierCurveTo(len * 0.25, -wd * 1.05, len * 0.68, -wd * 0.7, len, 0);
+    o.bezierCurveTo(len * 0.68, wd * 0.7, len * 0.25, wd * 1.05, 0, 0);
+    o.fill();
+    var lw = Math.max(0.8, len * 0.035);
+    o.strokeStyle = 'rgba(0,0,0,0.3)'; o.lineWidth = lw;
+    o.beginPath(); o.moveTo(len * 0.06, 0); o.lineTo(len * 0.86, 0); o.stroke();
+    o.strokeStyle = 'rgba(0,0,0,0.2)'; o.lineWidth = lw * 0.8;
+    o.beginPath();
+    for (var sd = -1; sd <= 1; sd += 2) {
+      o.moveTo(len * 0.1, 0); o.lineTo(len * 0.6, sd * wd * 0.5);
+      o.moveTo(len * 0.1, 0); o.lineTo(len * 0.4, sd * wd * 0.62);
+      o.moveTo(len * 0.3, 0); o.lineTo(len * 0.72, sd * wd * 0.3);
+    }
+    o.stroke();
+    if (open > 0.5) {
+      o.fillStyle = pal[0]; o.globalAlpha = 0.85;
+      var r = Math.max(0.8, len * 0.026);
+      for (var k = 0; k < 9; k++) {
+        var px = len * (0.1 + 0.045 * k), py = (((k * 37) % 7) - 3) * wd * 0.12;
+        o.beginPath(); o.arc(px, py, r, 0, 6.283); o.fill();
+      }
+      o.globalAlpha = 1;
+    }
+  }
+
+  function flower(f, pos, b, sizeMul) {
+    var R = f.r * S * 1.2 * sizeMul;
+    if (R < 1.2) return;
+    var open = smooth((b - 0.12) / 0.85);
+    var len = R * (0.42 + 0.58 * Math.pow(b, 0.8));
+    var wd = len * 0.31;
+    o.save(); o.translate(pos.x, pos.y); o.rotate(f.rot);
+    o.scale(1, lerp(1, f.sq, open));
+    var ps = [], k;
+    for (k = 0; k < 6; k++) {
+      var pj = f.pj[k];
+      ps.push({
+        a: lerp(-Math.PI / 2 + (k - 2.5) * 0.07, f.a0 + k * Math.PI / 3 + pj.a, open),
+        l: len * pj.l * (k % 2 ? 0.93 : 1),
+        w: wd * pj.w
+      });
+    }
+    ps.sort(function (a, c) { return Math.sin(a.a) - Math.sin(c.a); });
+    ps.forEach(function (p) {
+      o.save(); o.rotate(p.a); petal(p.l, p.w, f.pal, open); o.restore();
+    });
+    if (open > 0.3) {
+      var cg = o.createRadialGradient(0, 0, 0, 0, 0, len * 0.32);
+      cg.addColorStop(0, f.pal[0]); cg.addColorStop(1, 'rgba(0,0,0,0)');
+      o.globalAlpha = open * 0.9; o.fillStyle = cg;
+      o.beginPath(); o.arc(0, 0, len * 0.32, 0, 6.283); o.fill();
+      o.globalAlpha = 1;
+    }
+    if (open > 0.5) {
+      var so = (open - 0.5) * 2;
+      for (k = 0; k < 6; k++) {
+        var sa = -Math.PI / 2 + (k - 2.5) * 0.45;
+        var sx = Math.cos(sa) * len * 0.55 * so, sy = Math.sin(sa) * len * 0.55 * so;
+        o.strokeStyle = '#ecdca4'; o.lineWidth = Math.max(0.8, len * 0.03);
+        o.beginPath(); o.moveTo(0, 0); o.lineTo(sx, sy); o.stroke();
+        o.fillStyle = '#e8872a';
+        var as = Math.max(1, len * 0.05);
+        o.fillRect(sx - as, sy - as, as * 2, as * 2);
+      }
+    }
+    o.restore();
+  }
+
+  function scene(T) {
+    o.setTransform(1, 0, 0, 1, 0, 0);
+    o.clearRect(0, 0, cols, rows);
+    o.setTransform(1 / cw, 0, 0, 1 / ch, 0, 0);
+    o.lineCap = 'round'; o.lineJoin = 'round';
+
+    B.forEach(function (b) { if (!b.front) blade(b, T); });
+
+    var fade = 1 - smooth((T - 10.0) / 1.5);
+    F.forEach(function (f) {
+      var g = smooth((T - f.d) / 1.9) * (1 - smooth((T - 11.1) / 1.7));
+      if (g < 0.01) return;
+      var sway = Math.sin(T * 0.8 + f.ph) * S * 0.006;
+      var p0 = { x: cx + f.bx * S, y: baseY };
+      var hd = { x: cx + f.u * 0.88 * S + sway, y: baseY - f.h * 0.9 * S };
+      var p1 = { x: lerp(p0.x, hd.x, 0.05) + f.bend * S, y: lerp(p0.y, hd.y, 0.5) };
+      var p2 = { x: hd.x + f.bend * S * 0.3, y: lerp(hd.y, p0.y, 0.3) };
+      var lw = Math.max(S * 0.012, cw * 1.6);
+      var sa = 1 - 0.8 * smooth((T - 3.2) / 3) * fade;
+      o.globalAlpha = sa;
+      var N = 30, k;
+      o.strokeStyle = '#2f9a3a'; o.lineWidth = lw;
+      o.beginPath();
+      for (k = 0; k <= N; k++) {
+        var pt = bz(p0, p1, p2, hd, g * k / N);
+        if (k) o.lineTo(pt.x, pt.y); else o.moveTo(pt.x, pt.y);
+      }
+      o.stroke();
+      o.strokeStyle = 'rgba(170,245,130,0.55)'; o.lineWidth = lw * 0.35;
+      o.beginPath();
+      for (k = 0; k <= N; k++) {
+        var q = bz(p0, p1, p2, hd, g * k / N);
+        if (k) o.lineTo(q.x + lw * 0.2, q.y); else o.moveTo(q.x + lw * 0.2, q.y);
+      }
+      o.stroke();
+      f.leaves.forEach(function (l) {
+        if (g <= l.t) return;
+        var lg = smooth((g - l.t) / 0.3);
+        var a = bz(p0, p1, p2, hd, l.t), a2 = bz(p0, p1, p2, hd, l.t + 0.02);
+        var tan = Math.atan2(a2.y - a.y, a2.x - a.x);
+        var len = l.len * S * lg;
+        leaf(a.x, a.y, tan + l.side * (0.7 + l.jit), len, len * 0.15, '#1f6b2c', '#7ad656');
+      });
+      o.globalAlpha = 1;
+      var tip = bz(p0, p1, p2, hd, g);
+      var b = f.maxB * smooth((T - f.bs) / 2.2) * fade;
+      var sizeMul = smooth((g - 0.72) / 0.28) * Math.sqrt(fade);
+      flower(f, tip, b, sizeMul);
+    });
+
+    B.forEach(function (b) { if (b.front) blade(b, T); });
+  }
+
+  function draw(T) {
+    scene(T);
+    /* color layer, one flat block per character cell */
+    t.setTransform(1, 0, 0, 1, 0, 0);
+    t.globalCompositeOperation = 'source-over';
+    t.clearRect(0, 0, tmp.width, tmp.height);
+    t.imageSmoothingEnabled = false;
+    t.drawImage(off, 0, 0, cols, rows, 0, 0, cols * cwp, rows * chp);
+    /* keep that color only where a code glyph sits */
+    t.globalCompositeOperation = 'destination-in';
+    t.fillStyle = pats[Math.floor(T * 6) % pats.length];
+    t.fillRect(0, 0, tmp.width, tmp.height);
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1; ctx.fillStyle = BG; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#cfd6ff';
+    for (var s = 0; s < stars.length; s++) {
+      var st = stars[s];
+      ctx.globalAlpha = 0.15 + 0.4 * (0.5 + 0.5 * Math.sin(T * st.sp + st.p));
+      var sz = (st.big ? 2 : 1) * Math.max(1, dpr);
+      ctx.fillRect(Math.round(st.x * cv.width), Math.round(st.y * cv.height), sz, sz);
+    }
+    ctx.globalAlpha = 1;
+    ctx.drawImage(tmp, 0, 0);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.6;
+    ctx.drawImage(tmp, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  var start = performance.now(), last = 0;
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (now - last < 32) return;
+    last = now;
+    draw(((now - start) / 1000) % CYCLE);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  if (!reduced) {
+    requestAnimationFrame(frame);
+    cv.addEventListener('click', function () { start = performance.now(); });
+  }
+})();
+</script>
+
+</body>
+</html>
