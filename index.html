@@ -1,469 +1,662 @@
 <!DOCTYPE html>
-<html lang="en">
+<!--
+  Single file: index.html. Open it in VS Code with Live Server, or double-click it.
+  The words live in the <section> blocks below (class "line"). Edit them freely.
+-->
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LOVE YOU HEBA</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>❤️</text></svg>">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Can we talk?</title>
+<meta name="theme-color" content="#07020f">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Jost:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; background: #07081a; overflow: hidden; }
-  canvas { position: fixed; top: 0; left: 0; display: block; }
+  :root { --ink:#f6edff; --soft:#d9c6ff; --glow:#b98cff; --pink:#ff7ad1; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: #07020f; }
+  body { margin: 0; background: transparent; color: var(--ink); font-family: 'Cormorant Garamond', Georgia, 'Times New Roman', serif; -webkit-font-smoothing: antialiased; }
+
+  /* The living lily sits behind everything */
+  #c { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; transition: opacity .6s ease, filter .6s ease; }
+  #veil { position: fixed; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(to bottom, rgba(7,2,15,0) 55%, rgba(7,2,15,.85) 100%); transition: opacity .8s; }
+  main { position: relative; z-index: 2; transition: opacity 1s ease; }
+  section { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 28px; }
+
+  /* 1) Hero: the title appears letter by letter, the subtitle word by word */
+  .hero { position: relative; justify-content: flex-end; padding-bottom: calc(env(safe-area-inset-bottom) + 13vh); }
+  .hero h1 { margin: 0; font-size: clamp(52px, 13vw, 96px); font-style: italic; font-weight: 500; line-height: 1; white-space: nowrap;
+    text-shadow: 0 0 18px rgba(190,140,255,.85), 0 0 55px rgba(130,70,255,.65); }
+  .hero p { margin: 14px 0 0; font-size: clamp(20px, 4.6vw, 26px); color: var(--soft); }
+  .hero .ch, .hero .hw { display: inline-block; opacity: 0; transform: translateY(.5em) scale(.92); filter: blur(9px);
+    animation: chIn 1.3s cubic-bezier(.2,.7,.2,1) forwards; }
+  .hero .ch { animation-delay: calc(7.2s + var(--i) * .085s); }
+  .hero .hw { animation-delay: calc(8.6s + var(--i) * .14s); }
+  @keyframes chIn { to { opacity: 1; transform: none; filter: none; } }
+  .hint { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 22px); font-family: 'Jost', sans-serif; font-size: 12px; letter-spacing: .28em; text-transform: uppercase; color: #a58bd6; opacity: 0; animation: rise 2s ease 10.6s forwards, bob 2.4s ease-in-out 12.6s infinite; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  @keyframes bob { 50% { transform: translateY(6px); } }
+
+  /* 2) The letter: every word floats in (blur -> sharp, with a little purple glow) as you scroll */
+  .letter { min-height: 0; padding-top: 18vh; padding-bottom: 8vh; }
+  .line { max-width: 560px; margin: 0 0 30vh; font-size: clamp(27px, 6.4vw, 40px); line-height: 1.35; font-weight: 500;
+    --ts: 0 2px 24px rgba(7,2,15,.9), 0 0 30px rgba(7,2,15,.8); text-shadow: var(--ts); }
+  .line em { color: var(--glow); font-style: italic; }
+
+  .w { display: inline-block; opacity: 0; transform: translateY(.55em) scale(.96); filter: blur(10px);
+    transition: opacity 1s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1), filter 1s ease;
+    transition-delay: calc(var(--i, 0) * 85ms); }
+  .reveal.in .w { opacity: 1; transform: none; filter: none; animation: sparkle 1.8s ease both; animation-delay: calc(var(--i, 0) * 85ms); }
+  @keyframes sparkle {
+    0%   { text-shadow: 0 0 0 rgba(185,140,255,0); }
+    35%  { text-shadow: 0 0 22px rgba(190,140,255,.95), 0 0 48px rgba(140,80,255,.6); }
+    100% { text-shadow: var(--ts); }
+  }
+
+  /* 3) The question */
+  .ask h2 { margin: 0 0 34px; font-size: clamp(40px, 10vw, 64px); font-style: italic; font-weight: 500; --ts: 0 0 30px rgba(150,90,255,.8); text-shadow: var(--ts); }
+  .btns { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; width: 100%; max-width: 460px;
+    opacity: 0; transform: translateY(20px); transition: opacity 1s ease 1.6s, transform 1s ease 1.6s; }
+  .ask.in .btns { opacity: 1; transform: none; }
+  button { font-family: 'Jost', sans-serif; font-size: 17px; letter-spacing: .02em; border-radius: 999px; padding: 17px 30px; cursor: pointer; border: 1px solid rgba(255,255,255,.3); color: var(--soft); background: rgba(255,255,255,.06); backdrop-filter: blur(6px); transition: transform .2s, box-shadow .2s; flex: 1 1 180px; }
+  button:active { transform: scale(.97); }
+  button.yes { border: 0; font-weight: 500; color: #1a0833; background: linear-gradient(135deg, #b98cff, var(--pink)); box-shadow: 0 0 32px rgba(190,120,255,.65); animation: pulse 2.6s ease-in-out infinite;
+    transform: scale(var(--grow, 1)); transition: transform .35s cubic-bezier(.34,1.56,.64,1), box-shadow .2s; }
+  button.yes:active { transform: scale(calc(var(--grow, 1) * .97)); }
+  @keyframes pulse { 50% { box-shadow: 0 0 52px rgba(255,122,209,.8); } }
+  /* "Give me a little time" lives in a slot so it can jump around without breaking the layout */
+  .slot { flex: 0 1 auto; display: flex; }
+  .slot button { flex: 0 0 auto; position: relative; z-index: 3; touch-action: manipulation;
+    transition: transform .45s cubic-bezier(.34,1.56,.64,1), box-shadow .2s; }
+  #later { margin-top: 26px; min-height: 30px; font-size: 22px; font-style: italic; color: var(--soft); opacity: 0; transition: opacity 1s; }
+  #later.show { opacity: 1; }
+
+  /* 4) Thank-you overlay */
+  #thanks { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 12vh 28px 0; text-align: center; pointer-events: none; opacity: 0; transition: opacity 1.6s ease; background: linear-gradient(to bottom, rgba(7,2,15,.92), rgba(7,2,15,.55) 38%, rgba(7,2,15,0) 70%); }
+  #thanks.show { opacity: 1; }
+  #thanks h2 { margin: 0; font-size: clamp(50px, 13vw, 92px); font-style: italic; font-weight: 500;
+    --ts: 0 0 20px rgba(190,140,255,.9), 0 0 60px rgba(130,70,255,.7); text-shadow: var(--ts); }
+  #thanks p { margin: 18px 0 0; max-width: 520px; font-size: clamp(22px, 5vw, 30px); line-height: 1.3; color: var(--soft);
+    --ts: 0 2px 22px rgba(7,2,15,.95), 0 0 30px rgba(7,2,15,.8); text-shadow: var(--ts); }
+  #thanks p.sign { margin-top: 22px; color: var(--ink); font-style: italic; }
+  #thanks .w { transition-delay: calc(.7s + var(--i, 0) * 110ms); }
+  #thanks.show .w { opacity: 1; transform: none; filter: none; animation: sparkle 1.8s ease both; animation-delay: calc(.7s + var(--i, 0) * 110ms); }
+  .petal { position: fixed; top: -40px; z-index: 6; width: 14px; height: 22px; border-radius: 80% 0 80% 0; background: linear-gradient(#f0d9ff, #b07cff); opacity: .9; pointer-events: none; animation: fall linear forwards; }
+  .petal.heart { width: auto; height: auto; border-radius: 0; background: none; line-height: 1; }
+  @keyframes fall { to { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--rot)); opacity: .2; } }
+  @media (prefers-reduced-motion: reduce) {
+    .petal { display: none; }
+    .w, .hero .ch, .hero .hw { transition: none; animation: none; opacity: 1; transform: none; filter: none; }
+    .btns { opacity: 1; transform: none; transition: none; }
+  }
 </style>
 </head>
 <body>
-<canvas id="wheel"></canvas>
+<canvas id="c"></canvas>
+<div id="veil"></div>
+
+<main>
+  <section class="hero">
+    <h1>Can we talk?</h1>
+    <p>A flower, and a few honest words.</p>
+    <div class="hint">scroll</div>
+  </section>
+
+  <section class="letter">
+    <p class="line">I never want us to be upset with each other.</p>
+    <p class="line">It&rsquo;s not that I don&rsquo;t trust you.<br>I worry about <em>the crowd</em>.</p>
+    <p class="line">It&rsquo;s a big party, not very organized, and it&rsquo;ll end late.</p>
+    <p class="line">If someone bothers you or something goes wrong, I won&rsquo;t be there &mdash; and that&rsquo;s what worries me.</p>
+    <p class="line">Do whatever feels right to you.<br><em>I&rsquo;m with you either way.</em></p>
+    <p class="line">I might still worry a little, only because I care about you so much.</p>
+    <p class="line">Whatever you decide, I just want us to be okay, even if a part of me still feels a little uneasy.</p>
+  </section>
+
+  <section class="ask">
+    <h2>Can we talk tonight?</h2>
+    <div class="btns">
+      <button class="yes" id="yes">Yes &#128156;</button>
+      <div class="slot" id="slot"><button id="wait">Give me a little time</button></div>
+    </div>
+    <div id="later"></div>
+  </section>
+</main>
+
+<div id="thanks">
+  <h2>Thank you.</h2>
+  <p>For hearing me out, for caring as much as I do, and for always making us feel like a team.</p>
+  <p class="sign">You mean the world to me. &#128156;</p>
+</div>
+
 <script>
-// =====================================================
-//  100 WAYS TO SAY SORRY  ->  LOVE YOU HEBA
-//  عجلة بتلف فيها 100 اعتذار على خلفية قلوب بتطلع لفوق.
-// =====================================================
+/* ============ Page behaviour ============ */
+(function () {
+  const $ = s => document.querySelector(s);
 
-const canvas = document.getElementById("wheel");
-const ctx = canvas.getContext("2d");
+  // Splits an element's text into word <span>s (keeps <br> and <em>); each gets a stagger index --i
+  function splitWords(root, cls, start) {
+    let i = start || 0;
+    (function walk(node) {
+      Array.from(node.childNodes).forEach(ch => {
+        if (ch.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          ch.textContent.split(/(\s+)/).forEach(part => {
+            if (!part) return;
+            if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(' ')); return; }
+            const s = document.createElement('span');
+            s.className = cls; s.textContent = part; s.style.setProperty('--i', i++);
+            frag.appendChild(s);
+          });
+          node.replaceChild(frag, ch);
+        } else if (ch.nodeType === 1 && ch.tagName !== 'BR') walk(ch);
+      });
+    })(root);
+    return i;
+  }
 
-// ---------- الإعدادات ----------
-const TICK = 16;        // كل كام ميلي ثانية خطوة واحدة
-const INTERVAL = 9;     // كام خطوة بين كل اعتذار والتاني
-const R0 = 182;         // الدايرة اللي بتبدأ منها الأشعة
-const R_MAX = 342;      // أقصى مكان ممكن أطول جملة توصله
-const RING = 366;       // الحلقة الدهبية الكبيرة
-const SERIF = 'Georgia, "Times New Roman", serif';
-const SANS = 'Helvetica, Arial, sans-serif';
-const PX = 4 / 3;       // تحويل حجم الخط من points لـ pixels
+  // 0) Hero: title letter by letter, subtitle word by word
+  const h1 = $('.hero h1'), h1Text = h1.textContent;
+  h1.setAttribute('aria-label', h1Text); h1.textContent = '';
+  Array.from(h1Text).forEach((c, i) => {
+    const s = document.createElement('span');
+    s.className = 'ch'; s.setAttribute('aria-hidden', 'true');
+    s.textContent = c === ' ' ? ' ' : c; s.style.setProperty('--i', i);
+    h1.appendChild(s);
+  });
+  splitWords($('.hero p'), 'hw', 0);
 
-// الألوان (كل لون = أحمر، أخضر، أزرق من 0 لـ 1)
-const BG_TOP = [0.028, 0.035, 0.105];
-const BG_BOT = [0.17, 0.075, 0.19];
-const BGC    = [0.06, 0.05, 0.13];
-const CREAM  = [1.0, 0.95, 0.88];
-const GOLD   = [0.86, 0.69, 0.40];
-const FLASH  = [1.0, 0.97, 0.92];
+  // 1) The letter: each word floats in when its line reaches the middle of the screen
+  const ask = $('.ask'), askTitle = $('.ask h2');
+  document.querySelectorAll('.line').forEach(el => { el.classList.add('reveal'); splitWords(el, 'w', 0); });
+  ask.classList.add('reveal'); splitWords(askTitle, 'w', 0);
+  let k = 0; document.querySelectorAll('#thanks h2, #thanks p').forEach(el => { k = splitWords(el, 'w', k); });
+  const watcher = th => new IntersectionObserver((es, o) => es.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('in'); o.unobserve(e.target); } }), { threshold: th });
+  const ioLines = watcher(.55); document.querySelectorAll('.line').forEach(el => ioLines.observe(el));
+  watcher(.3).observe(ask);
 
-const STOPS = [
-  [0.42, 0.52, 0.98],   // indigo
-  [0.68, 0.48, 0.96],   // violet
-  [0.96, 0.46, 0.68],   // rose
-  [1.00, 0.62, 0.45],   // coral
-  [1.00, 0.82, 0.46],   // gold
-];
+  // 2) While reading, dim + soften the flower behind the text
+  const cv = document.getElementById('c'), veil = document.getElementById('veil');
+  let accepted = false;
+  function onScroll() {
+    if (accepted) return;
+    const k = Math.min(1, Math.max(0, window.scrollY / (window.innerHeight * .8)));
+    cv.style.opacity = 1 - .6 * k;
+    cv.style.filter = 'blur(' + (3 * k).toFixed(1) + 'px)';
+    veil.style.opacity = 1 - k;
+  }
+  window.addEventListener('scroll', onScroll, { passive: true }); onScroll();
 
-const PHRASES = [
-  "I'm so sorry",
-  "I was late",
-  "Please forgive me",
-  "I lost track of time",
-  "I should have called",
-  "I left you waiting",
-  "I'm sorry I made you worry",
-  "I stayed out too long",
-  "I should've come home early",
-  "I put friends before you",
-  "My phone was on silent",
-  "I'm sorry I didn't answer",
-  "You waited up for me",
-  "I should have been there",
-  "I owe you an apology",
-  "I missed our time together",
-  "I didn't mean to worry you",
-  "I wasted your time",
-  "You deserved a message",
-  "You deserved a call",
-  "I'm sorry I wasn't with you",
-  "I know you were worried",
-  "I know it upset you",
-  "I never meant to upset you",
-  "I should have left earlier",
-  "I let the night run away",
-  "I'm sorry you felt alone",
-  "I'm sorry you felt forgotten",
-  "I'm sorry I made you anxious",
-  "I wish I'd come back sooner",
-  "I should have thought of you",
-  "I wasn't considerate",
-  "I'm sorry I missed your call",
-  "I'm sorry I was out so late",
-  "I should've said where I was",
-  "I won't make you wait again",
-  "I'll text you next time",
-  "I'll call you next time",
-  "I'll keep my phone close",
-  "I'll watch the time, promise",
-  "I'll be home on time",
-  "I'll tell you before I leave",
-  "I'll do better, I promise",
-  "I'll be more thoughtful",
-  "I'm learning from this",
-  "I'll always let you know",
-  "I'll answer when you call",
-  "I'll never worry you again",
-  "I'll plan our time better",
-  "I'll earn your trust again",
-  "I won't take you for granted",
-  "I'll listen more carefully",
-  "I'll make our nights better",
-  "Let me start the night over",
-  "Tell me how to fix it",
-  "Let me make it up to you",
-  "I want to make it right",
-  "Let me make tonight right",
-  "I miss you, and I'm sorry",
-  "Our time matters to me",
-  "I value our time together",
-  "You are my first priority",
-  "Your peace matters to me",
-  "You mean everything to me",
-  "You're worth every apology",
-  "You matter more than a night",
-  "I can't lose your trust",
-  "I'd take back the late night",
-  "I wish I could undo it",
-  "I'm sorry for every minute",
-  "You didn't deserve to wait",
-  "It was never your fault",
-  "You did nothing wrong",
-  "I'm sorry if you felt small",
-  "I'm sorry I was careless",
-  "I never want to lose you",
-  "You are my home",
-  "I'm lucky to have you",
-  "I cherish every day with you",
-  "I choose you, always",
-  "I love you more than words",
-  "My heart is yours",
-  "I'm sorry, my love",
-  "I miss your smile",
-  "I hope you can forgive me",
-  "I'm sorry I wasn't there",
-  "I should've known better",
-  "I'm sorry I let you down",
-  "I'm sorry from my heart",
-  "I'm sorry, and I mean it",
-  "You can trust me again",
-  "Give me another chance",
-  "You come first, always",
-  "Thank you for your patience",
-  "Forgive me when you can",
-  "I'm grateful for you",
-  "I'm here with you now",
-  "I love you, and I'm sorry",
-  "Will you forgive me?",
-  "I'm sorry. Always.",
-];
-const N = PHRASES.length;
-if (N !== 100) console.warn("لازم يكونوا 100 جملة، لكن العدد =", N);
+  // 3) The buttons. "Give me a little time" runs away, so the only button you can press is Yes.
+  const later = $('#later'), yes = $('#yes'), wait = $('#wait'), slot = $('#slot');
+  const CATCH_AFTER = 0;   // 0 = the button runs away forever. Put e.g. 8 to let her catch it after 8 escapes.
+  const TEASE = ['Oops, it slipped away \u{1F648}', 'Too slow \u{1F604}', 'It really doesn’t want to be pressed \u{1F49C}', 'Maybe try the other one? \u{1F60C}', 'Almost had it!'];
+  let dodges = 0, lastDodge = 0;
+  function say(msg) { later.textContent = msg; later.classList.add('show'); }
+  function dodge(px, py) {
+    if (accepted) return;
+    if (CATCH_AFTER && dodges >= CATCH_AFTER) return;
+    const now = performance.now(); if (now - lastDodge < 80) return; lastDodge = now;
+    const r = wait.getBoundingClientRect(), s = slot.getBoundingClientRect(), a = ask.getBoundingClientRect();
+    const pad = 14, vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    const minX = pad, maxX = vw - r.width - pad;
+    const minY = Math.max(pad, a.top + pad), maxY = Math.min(vh - r.height - pad, a.bottom - r.height - pad);
+    if (maxX <= minX || maxY <= minY) return;
+    if (px == null) { px = r.left + r.width / 2; py = r.top + r.height / 2; }
+    const avoid = [yes, askTitle, later].map(e => e.getBoundingClientRect());
+    let best = null, bestD = -1;
+    for (let n = 0; n < 40; n++) {
+      const x = minX + Math.random() * (maxX - minX), y = minY + Math.random() * (maxY - minY), m = 12;
+      const c = { left: x, top: y, right: x + r.width, bottom: y + r.height };
+      if (avoid.some(b => !(c.right < b.left - m || c.left > b.right + m || c.bottom < b.top - m || c.top > b.bottom + m))) continue;
+      const d = Math.hypot(x + r.width / 2 - px, y + r.height / 2 - py);
+      if (d > bestD) { bestD = d; best = { x: x, y: y }; }
+    }
+    if (!best) return;
+    dodges++;
+    wait.style.transform = 'translate(' + (best.x - s.left).toFixed(1) + 'px,' + (best.y - s.top).toFixed(1) + 'px) rotate(' + (Math.random() * 12 - 6).toFixed(1) + 'deg)';
+    yes.style.setProperty('--grow', Math.min(1.1, 1 + dodges * .015).toFixed(3));
+    say(TEASE[(dodges - 1) % TEASE.length]);
+  }
+  wait.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') dodge(e.clientX, e.clientY); });
+  wait.addEventListener('touchstart', e => { e.preventDefault(); const t = e.touches[0]; dodge(t.clientX, t.clientY); }, { passive: false });
+  wait.addEventListener('click', e => {
+    e.preventDefault();
+    if (CATCH_AFTER && dodges >= CATCH_AFTER) { say('Of course. Take all the time you need. \u{1F49C}'); return; }
+    dodge(e.clientX || null, e.clientY || null);
+  });
+  // also run away when a mouse gets close, or when a finger lands right next to it
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse') return;
+    const r = wait.getBoundingClientRect(), m = 55;
+    if (e.clientX > r.left - m && e.clientX < r.right + m && e.clientY > r.top - m && e.clientY < r.bottom + m) dodge(e.clientX, e.clientY);
+  });
+  document.addEventListener('pointerdown', e => {
+    if (e.target.closest && e.target.closest('#yes')) return;
+    const r = wait.getBoundingClientRect(), m = 16;
+    if (e.clientX > r.left - m && e.clientX < r.right + m && e.clientY > r.top - m && e.clientY < r.bottom + m) dodge(e.clientX, e.clientY);
+  }, true);
 
-// ---------- دوال مساعدة ----------
-function hx(c) {
-  return "#" + c.map(v => {
-    const n = Math.floor(Math.max(0, Math.min(1, v)) * 255);
-    return n.toString(16).padStart(2, "0");
-  }).join("");
+  yes.addEventListener('click', () => {
+    accepted = true; later.classList.remove('show');
+    cv.style.opacity = 1; cv.style.filter = 'none'; veil.style.opacity = 0;
+    document.body.style.overflow = 'hidden';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    document.querySelector('main').style.opacity = 0;
+    document.getElementById('thanks').classList.add('show');
+    for (let i = 0; i < 56; i++) {                       // falling petals (+ a few hearts)
+      const p = document.createElement('div'); p.className = 'petal';
+      if (i % 7 === 0) { p.className = 'petal heart'; p.textContent = '\u{1F49C}'; p.style.fontSize = (16 + Math.random() * 16) + 'px'; }
+      p.style.left = Math.random() * 100 + 'vw';
+      p.style.setProperty('--dx', (Math.random() * 160 - 80) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 720 - 360) + 'deg');
+      p.style.animationDuration = (5 + Math.random() * 6) + 's';
+      p.style.animationDelay = (Math.random() * 3) + 's';
+      p.style.transform = 'scale(' + (.6 + Math.random() * .9) + ')';
+      document.body.appendChild(p);
+    }
+  });
+})();
+</script>
+
+<script>
+/* ============ The lily (canvas animation) ============ */
+
+(() => {
+'use strict';
+
+/* =====================================================================
+   1) أدوات رياضية صغيرة
+   ===================================================================== */
+const TAU = Math.PI * 2;
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp  = (a, b, t) => a + (b - a) * t;
+// smoothstep: بتدّيك قيمة من 0 لـ 1 بنعومة بين وقتين (بنستخدمها لتوقيت كل مرحلة)
+const sm = (a, b, x) => { const t = clamp((x - a) / (b - a)); return t * t * (3 - 2 * t); };
+const ease = t => (t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2);
+function rng(seed) { // رقم عشوائي ثابت (نفس النتيجة كل مرة)
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
-function rgba(c, a) {
-  const f = v => Math.floor(Math.max(0, Math.min(1, v)) * 255);
-  return `rgba(${f(c[0])},${f(c[1])},${f(c[2])},${a})`;
-}
-function mix(a, b, k) { return a.map((p, i) => p + (b[i] - p) * k); }
-function clamp(v) { return Math.max(0, Math.min(1, v)); }
-function palette(k) {
-  k = clamp(k) * (STOPS.length - 1);
-  const i = Math.min(Math.floor(k), STOPS.length - 2);
-  return mix(STOPS[i], STOPS[i + 1], k - i);
-}
-const easeOut = u => 1 - Math.pow(1 - u, 3);
+// متجهات ثلاثية الأبعاد
+const add = (a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const sub = (a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+const mul = (a,s)=>[a[0]*s,a[1]*s,a[2]*s];
+const dot = (a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+const len = a=>Math.hypot(a[0],a[1],a[2]);
+const norm= a=>{const l=len(a)||1;return [a[0]/l,a[1]/l,a[2]/l];};
+const bez = (p,t)=>{const u=1-t,a=u*u*u,b=3*u*u*t,c=3*u*t*t,d=t*t*t;
+  return [0,1,2].map(i=>a*p[0][i]+b*p[1][i]+c*p[2][i]+d*p[3][i]);};
 
-// رقم عشوائي "ثابت" عشان كل مرة نفس الترتيب
-let seed = 7;
-function rand() {
-  seed = (seed * 16807) % 2147483647;
-  return (seed - 1) / 2147483646;
-}
-const uniform = (a, b) => a + (b - a) * rand();
-const choice = arr => arr[Math.floor(rand() * arr.length)];
-
-// ---------- حجم الشاشة ----------
-let VW = 800, VH = 800;   // مقاس النافذة
-let S = 1;                // مقياس العجلة (العجلة 800×800 جوه أصغر بُعد)
-let HW = 400, HH = 400;   // نص عرض ونص طول الدنيا بوحدات العجلة
-
+/* =====================================================================
+   2) الكانفاس والكاميرا
+   ===================================================================== */
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d');
+ctx.direction = 'ltr';   // الكود لازم يتكتب من الشمال لليمين حتى لو الصفحة عربي
+let W, H, S;                       // S = حجم الوحدة بالبكسل
 function resize() {
-  const dpr = window.devicePixelRatio || 1;
-  VW = window.innerWidth;
-  VH = window.innerHeight;
-  canvas.width = Math.round(VW * dpr);
-  canvas.height = Math.round(VH * dpr);
-  canvas.style.width = VW + "px";
-  canvas.style.height = VH + "px";
-  S = Math.min(VW, VH) / 800;
-  HW = VW / (2 * S);
-  HH = VH / (2 * S);
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.direction = 'ltr';
+  S = Math.min(H / 5.1, W / 2.5);
 }
-resize();
-function toWheelSpace() {
-  const k = canvas.width / VW;   // = dpr
-  ctx.setTransform(S * k, 0, 0, S * k, canvas.width / 2, canvas.height / 2);
+window.addEventListener('resize', resize); resize();
+
+let camRY = 0, camRX = 0.1;        // دوران الكاميرا
+const FOCAL = 7;
+function toCam(p) {                // من العالم لمنظور الكاميرا
+  const cy = Math.cos(camRY), sy = Math.sin(camRY), cx = Math.cos(camRX), sx = Math.sin(camRX);
+  const x1 = p[0]*cy + p[2]*sy, z1 = -p[0]*sy + p[2]*cy;
+  return [x1, p[1]*cx - z1*sx, p[1]*sx + z1*cx];
+}
+function proj(c) {                 // من ثلاثي الأبعاد لإحداثيات الشاشة
+  const k = FOCAL / (FOCAL - c[2]);
+  return [W/2 + c[0]*S*k, H*0.57 - c[1]*S*k, k];
 }
 
-// ---------- القلوب اللي في الخلفية ----------
-const hearts = [];
-function spawnHeart(anywhere) {
-  const sz = uniform(6, 26);
-  return {
-    x: uniform(-HW - 30, HW + 30),
-    y: anywhere ? uniform(-HH - 30, HH + 30) : HH + 30 + sz,
-    sz,
-    vy: uniform(0.15, 0.5),
-    sway: uniform(0.1, 0.35),
-    ph: uniform(0, 6.28),
-    color: palette(uniform(0.3, 1)),
-    alpha: uniform(0.2, 0.62),
+/* =====================================================================
+   3) توقيت الأنيميشن (بالثواني) — ده قلب الموضوع
+   ===================================================================== */
+const FIX = new URLSearchParams(location.search).get('t');   // للاختبار فقط: ?t=12
+let t0 = performance.now();
+const START = 7.0;
+let t = 0, st = {};
+function timeline() {          // الأوقات دي بنفس ثواني الفيديو الأصلي
+  st = {
+    aura:    sm(7.0, 7.6, t),
+    parts:   sm(7.2, 8.2, t),
+    leaf:    sm(8.3, 9.5, t),
+    leafSol: sm(10.6, 12.4, t),
+    stemSol: sm(10.8, 12.8, t),
+    wire:    sm(9.2, 10.0, t),
+    grow:    sm(9.3, 11.0, t),
+    bloom:   sm(9.8, 11.6, t),
+    pk:      sm(10.9, 11.7, t),
+    stamen:  sm(12.9, 15.2, t),
+    spots:   sm(11.8, 13.2, t)
   };
 }
-for (let i = 0; i < 120; i++) hearts.push(spawnHeart(true));
 
-function heartPath(x, y, s) {
-  ctx.beginPath();
-  ctx.moveTo(x, y + s * 0.9);
-  ctx.bezierCurveTo(x - s * 1.3, y - s * 0.1, x - s * 0.7, y - s * 1.1, x, y - s * 0.35);
-  ctx.bezierCurveTo(x + s * 0.7, y - s * 1.1, x + s * 1.3, y - s * 0.1, x, y + s * 0.9);
-  ctx.closePath();
-}
-
-// ---------- الأشعة (الجمل اللي حوالين العجلة) ----------
-let fs = 9;
-while (fs > 6) {
-  ctx.font = `${fs * PX}px ${SANS}`;
-  const widest = Math.max(...PHRASES.map(p => ctx.measureText(p).width));
-  if (widest <= R_MAX - R0) break;
-  fs -= 1;
-}
-
-const spokes = PHRASES.map((text, i) => ({
-  text,
-  th: Math.PI / 2 - (2 * Math.PI * i) / N,
-  color: palette(i / (N - 1)),
-  born: null,
-  slide: 18,
-  fill: BGC,
-}));
-
-// ---------- الحالة ----------
-let tick = 0;
-let rot = 0.0;
-let shown = 0;
-let cur = null;
-let curT = 0;
-let doneT = null;     // الخطوة اللي خلصت فيها كل الجمل
-
-const center = { title: BGC, rule: BGC, phrase: BGC, counter: BGC, text: "", num: "" };
-
-function showCenter(i) {
-  cur = i;
-  curT = tick;
-  center.text = PHRASES[i];
-  center.num = "N° " + String(i + 1).padStart(3, "0");
-}
-
-// ---------- التحديث: بيتنفذ كل 16 ميلي ثانية ----------
-function update() {
-  tick += 1;
-  rot -= 0.0006 + (shown >= N ? 0.0006 : 0);
-
-  // نظهر الاعتذار اللي بعده
-  if (shown < N && tick % INTERVAL === 0) {
-    spokes[shown].born = tick;
-    showCenter(shown);
-    shown += 1;
-    if (shown === N) doneT = tick;
-  }
-
-  // لما نخلص: نفضل نغيّر الجملة اللي في النص 
-  if (doneT && tick - doneT > 150 && tick - curT > 170) {
-    showCenter((cur + 1) % N);   // نفس الترتيب من الأول: 1، 2، 3 ... 100 وبعدين نرجع لـ 1
-  }
-
-  // الأشعة
-  const sweep = (tick * 0.22) % N;
-  spokes.forEach((p, i) => {
-    if (p.born === null) return;
-    const u = clamp((tick - p.born) / 40);
-    const e = 1 - Math.pow(1 - u, 3);
-    p.slide = (1 - e) * 18;
-    let glow = 0.0;
-    if (doneT) {
-      let d = Math.abs(i - sweep);
-      d = Math.min(d, N - d);
-      glow = Math.exp(-Math.pow(d / 3.0, 2)) * 0.65;
-    }
-    const pop = u < 0.6 ? 0.9 * Math.sin(Math.PI * clamp((u - 0.1) / 0.5)) : 0;
-    p.fill = mix(mix(BGC, p.color, 0.82 * e), FLASH, Math.max(glow, pop));
-  });
-
-  // النص اللي في النص
-  const k = clamp((tick - 8) / 40);
-  center.title = mix(BGC, GOLD, 0.85 * k);
-  center.rule = mix(BGC, GOLD, 0.5 * k);
-  if (cur !== null) {
-    const fe = clamp((tick - curT) / 14);
-    center.phrase = mix(BGC, mix(CREAM, spokes[cur].color, 0.18), fe);
-    center.counter = mix(BGC, GOLD, 0.75 * fe);
-  }
-  // القلوب بتطلع لفوق وبتتهز يمين وشمال
-  hearts.forEach((h, i) => {
-    h.y -= h.vy;
-    h.x += Math.sin(tick * 0.02 + h.ph) * h.sway;
-    if (h.y < -HH - 40) hearts[i] = spawnHeart(false);
-  });
-
-}
-
-// ---------- الرسم ----------
-function drawSky() {
-  // خلفية متدرجة بتملا الشاشة كلها
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  for (let i = 0; i <= 16; i++) {
-    const t = i / 16;
-    g.addColorStop(t, hx(mix(BG_TOP, BG_BOT, Math.pow(t, 1.4))));
-  }
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  toWheelSpace();
-}
-
-function drawHearts() {
-  hearts.forEach(h => {
-    // القلوب ما بتظهرش جوه العجلة عشان الجمل تفضل واضحة
-    const r = Math.hypot(h.x, h.y);
-    const vis = clamp((r - (RING + 6)) / 40);
-    if (vis <= 0) return;
-    const pulse = 0.8 + 0.2 * Math.sin(tick * 0.04 + h.ph);
-    ctx.save();
-    ctx.translate(h.x, h.y);
-    ctx.rotate(Math.sin(tick * 0.015 + h.ph) * 0.35);
-    ctx.fillStyle = rgba(h.color, h.alpha * 0.28 * vis);     // هالة ناعمة
-    heartPath(0, 0, h.sz * 1.55 * pulse);
-    ctx.fill();
-    ctx.fillStyle = rgba(h.color, h.alpha * vis * pulse);
-    heartPath(0, 0, h.sz * pulse);
-    ctx.fill();
-    ctx.restore();
-  });
-}
-
-function drawRings() {
-  ctx.lineWidth = 1;
-  [[R0 - 14, 0.35], [R0 - 19, 0.12], [RING, 0.18]].forEach(([rad, k]) => {
-    ctx.strokeStyle = hx(mix(BG_TOP, GOLD, k));
-    ctx.beginPath();
-    ctx.arc(0, 0, rad, 0, Math.PI * 2);
-    ctx.stroke();
-  });
-}
-
-function drawArc() {
-  const extent = Math.max(0.01, Math.min(359.9, (360 * shown) / N));
-  ctx.strokeStyle = hx(GOLD);
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(0, 0, RING, -Math.PI / 2, -Math.PI / 2 + (extent * Math.PI) / 180);
-  ctx.stroke();
-}
-
-function drawSpokes() {
-  ctx.font = `${fs * PX}px ${SANS}`;
-  ctx.textBaseline = "middle";
-  const TWO_PI = 2 * Math.PI;
-  spokes.forEach(p => {
-    if (p.born === null) return;
-    const a = (((p.th + rot) % TWO_PI) + TWO_PI) % TWO_PI;
-    const rr = R0 + p.slide;
-    const x = rr * Math.cos(a);
-    const y = -rr * Math.sin(a);
-    const flip = a > Math.PI / 2 && a < (3 * Math.PI) / 2;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(-a + (flip ? Math.PI : 0));
-    ctx.textAlign = flip ? "right" : "left";
-    ctx.fillStyle = hx(p.fill);
-    ctx.fillText(p.text, 0, 0);
-    ctx.restore();
-  });
-}
-
-function wrap(text, maxW) {
-  const words = text.split(" ");
-  const lines = [];
-  let line = "";
-  words.forEach(w => {
-    const test = line ? line + " " + w : w;
-    if (ctx.measureText(test).width > maxW && line) {
-      lines.push(line);
-      line = w;
-    } else {
-      line = test;
+/* =====================================================================
+   5) نبات الزنبق: سيقان + ورق + براعم + ورود
+   ===================================================================== */
+// كل ساق = منحنى بيزييه (4 نقاط). النقطة الأخيرة هي مكان الوردة أو البرعم
+const STEMS = [
+  { p:[[0,-2.6,0],[0.05,-1.0,0.1],[-0.05,0.4,0],[0.05,1.8,0]],                r:.030, t0:7.90, bud:{dir:[0.02,1,0.0], size:0.85} },
+  { p:[[-0.04,-2.6,.05],[-0.10,-1.2,.15],[-0.45,0.1,.1],[-0.50,1.20,.10]],     r:.028, t0:8.00, flower:0 },
+  { p:[[0.05,-2.6,0],[0.2,-1.6,.1],[0.4,-0.8,.2],[0.50,0.30,.25]],             r:.028, t0:8.10, flower:1 },
+  { p:[[0,-2.6,.05],[-0.1,-1.9,.2],[-0.2,-1.0,.35],[-0.20,-0.20,.45]],         r:.026, t0:8.20, flower:2 },
+  { p:[[0.03,-2.6,-.05],[0.4,-1.4,-.1],[0.8,-0.2,-.1],[0.95,0.85,-.05]],       r:.024, t0:8.30, bud:{dir:[0.25,1,0.05], size:0.5} },
+  // ---- ورود زيادة (flower: 3 → 6) ----
+  { p:[[0.02,-2.6,-.02],[0.15,-1.2,-.15],[0.35,0.2,-.2],[0.55,1.55,-.10]],     r:.024, t0:8.35, flower:3 },
+  { p:[[-0.03,-2.6,.1],[-0.3,-1.6,.2],[-0.6,-0.8,.25],[-0.62,0.15,.2]],        r:.024, t0:8.40, flower:4 },
+  { p:[[0.04,-2.6,.02],[0.05,-1.4,-.05],[-0.05,-0.2,-.1],[0.0,0.80,-.10]],     r:.022, t0:8.45, flower:5 },
+  { p:[[0.01,-2.6,.1],[0.3,-1.8,.3],[0.6,-1.0,.4],[0.72,-0.25,.4]],            r:.022, t0:8.50, flower:6 }
+];
+const FLOWER_SCALE = 1.1;    // تكبير كل الورود (غيّر الرقم لو عايزها أكبر/أصغر)
+const INNER = 0.55;          // حجم الحاجات اللي جوه الوردة (الأسدية والمدقة): 1 = زي الأول، أقل = أصغر
+const FLOWERS = [   // dir = الاتجاه اللي الوردة بتبص ناحيته
+  { dir:[-0.25,0.35,0.9], size:1.00, delay:0.00 },
+  { dir:[0.45,0.20,0.85], size:0.95, delay:0.10 },
+  { dir:[-0.30,0.10,0.95], size:0.82, delay:0.20 },
+  { dir:[0.30,0.30,0.90], size:0.80, delay:0.05 },
+  { dir:[-0.50,0.25,0.85], size:0.85, delay:0.15 },
+  { dir:[0.00,0.40,0.90], size:0.72, delay:0.25 },
+  { dir:[0.40,0.10,0.90], size:0.66, delay:0.30 }
+];
+const LEAVES = (() => {
+  const r = rng(7), out = [];
+  STEMS.forEach((s, si) => {
+    const n = si === 0 ? 6 : si < 5 ? 4 : 3;
+    for (let k = 0; k < n; k++) {
+      const sp = 0.05 + (k / (n - 1)) * 0.40 + r() * 0.04;
+      out.push({ si, sp, az: k * 2.4 + si * 1.3, L: lerp(1.25, 0.65, sp / .45) * (0.8 + r() * .4),
+                 Wd: 0.10 + r() * 0.03, droop: 0.35 + r() * 0.5 });
     }
   });
-  lines.push(line);
-  return lines;
+  return out;
+})();
+const PARTS = (() => { const r = rng(21); return Array.from({ length: 90 }, () => ({
+  x: (r()-.5)*2.8, y: (r()-.5)*4.4, z: (r()-.5)*2, sp: .03 + r()*.08, ph: r()*TAU, sz: .8 + r()*2.6,
+  c: r() < .25 ? [255,150,220] : r() < .5 ? [255,255,255] : [185,150,255] })); })();
+
+/* قائمة العناصر اللي هترسم كل فريم — هنرتبها من الأبعد للأقرب (Painter's algorithm) */
+let items = [], glows = [];
+const LD = norm([-0.4, 0.7, 0.6]);         // اتجاه الضوء
+
+function quad(z, pts, fill, fa, wire, wa) {
+  items.push({ z, f() {
+    ctx.beginPath(); ctx.moveTo(pts[0], pts[1]); ctx.lineTo(pts[2], pts[3]);
+    ctx.lineTo(pts[4], pts[5]); ctx.lineTo(pts[6], pts[7]); ctx.closePath();
+    if (fa > .01) { const c = `rgba(${fill[0]|0},${fill[1]|0},${fill[2]|0},${fa})`;
+      ctx.fillStyle = c; ctx.fill(); ctx.lineWidth = 1; ctx.strokeStyle = c; ctx.stroke(); }
+    if (wa > .01) { ctx.lineWidth = .8; ctx.strokeStyle = `rgba(${wire[0]},${wire[1]},${wire[2]},${wa})`; ctx.stroke(); }
+  }});
 }
+function quadNormalCam(a, b, c) { return cross(sub(b, a), sub(c, a)); }
 
-function drawCenter() {
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  ctx.font = `bold ${8 * PX}px ${SANS}`;
-  ctx.fillStyle = hx(center.title);
-  ctx.fillText("I  L O V E  Y O U", 0, -72);
-  ctx.fillText("H E B A", 0, -56);
-
-  ctx.strokeStyle = hx(center.rule);
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(-26, 52);
-  ctx.lineTo(26, 52);
-  ctx.stroke();
-
-  ctx.font = `italic ${19 * PX}px ${SERIF}`;
-  ctx.fillStyle = hx(center.phrase);
-  const lines = wrap(center.text, 250);
-  const lh = 19 * PX * 1.15;
-  lines.forEach((ln, i) => {
-    ctx.fillText(ln, 0, -2 + (i - (lines.length - 1) / 2) * lh);
-  });
-
-  ctx.font = `bold ${9 * PX}px ${SANS}`;
-  ctx.fillStyle = hx(center.counter);
-  ctx.fillText(center.num, 0, 72);
-}
-
-function draw() {
-  drawSky();
-  drawHearts();
-  drawRings();
-  drawArc();
-  drawSpokes();
-  drawCenter();
-}
-
-// ---------- اللوب الرئيسي ----------
-window.addEventListener("resize", resize);
-
-let last = performance.now();
-let acc = 0;
-function frame(now) {
-  acc += now - last;
-  last = now;
-  if (acc > 250) acc = 250;
-  while (acc >= TICK) {
-    update();
-    acc -= TICK;
+/* ---------- الساق ---------- */
+function addStem(s, g) {
+  if (g <= .001) return;
+  const n = Math.max(3, Math.round(34 * g)), pr = [], cz = [];
+  for (let i = 0; i <= n; i++) {
+    const c = toCam(bez(s.p, g * i / n)); pr.push(proj(c)); cz.push(c[2]);
   }
-  draw();
+  for (let i = 0; i < n; i++) {
+    const a = pr[i], b = pr[i+1], rA = s.r * (1 - .45 * i / n) * S * a[2], rB = s.r * (1 - .45 * (i+1) / n) * S * b[2];
+    let dx = b[0]-a[0], dy = b[1]-a[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+    const nx = -dy, ny = dx;
+    const pts = [a[0]+nx*rA, a[1]+ny*rA, b[0]+nx*rB, b[1]+ny*rB, b[0]-nx*rB, b[1]-ny*rB, a[0]-nx*rA, a[1]-ny*rA];
+    const sh = 1;
+    quad((cz[i]+cz[i+1])/2, pts, [18*sh, 62*sh, 62*sh], .12 + .78 * st.stemSol, [120,215,215], .5 * (1 - .7 * st.stemSol));
+    if (i % 3 === 0) { const q = pr[i], da = .8 * (1 - st.stemSol); if (da > .02) items.push({ z: cz[i] + .01, f() { ctx.fillStyle = `rgba(200,235,255,${da})`; ctx.beginPath(); ctx.arc(q[0], q[1], 1.6, 0, TAU); ctx.fill(); } }); }
+  }
+}
+
+/* ---------- ورقة الشجر ---------- */
+function addLeaf(A, az, L, Wd, droop) {
+  const D = norm([Math.cos(az), 0.55, Math.sin(az)]);
+  const side = norm(cross(D, [0, 1, 0]));
+  const NU = 8, NV = 4, G = [], P = [];
+  for (let i = 0; i <= NU; i++) { G[i] = []; P[i] = [];
+    const u = i / NU, w = Wd * L * Math.pow(Math.sin(Math.PI * Math.pow(u, .85)), .9);
+    const c = add(add(A, mul(D, L * u)), [0, -droop * L * u * u * .9, 0]);
+    for (let j = 0; j <= NV; j++) {
+      const v = -1 + 2 * j / NV;
+      const p = add(add(c, mul(side, v * w)), [0, .25 * Math.abs(v) * w, 0]);
+      G[i][j] = toCam(p); P[i][j] = proj(G[i][j]);
+    } }
+  for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) {
+    const a = G[i][j], b = G[i+1][j], d = G[i][j+1], e = G[i+1][j+1];
+    const nn = norm(quadNormalCam(a, b, d)), lam = Math.abs(dot(nn, LD));
+    const u = (i + .5) / NU, vv = Math.abs(-1 + 2 * (j + .5) / NV);
+    const sh = .55 + .6 * lam, base = [lerp(16, 40, u) * (1 - .2 * vv), lerp(58, 105, u) * (1 - .2 * vv), lerp(58, 92, u)];
+    quad((a[2]+b[2]+d[2]+e[2])/4, [P[i][j][0],P[i][j][1],P[i+1][j][0],P[i+1][j][1],P[i+1][j+1][0],P[i+1][j+1][1],P[i][j+1][0],P[i][j+1][1]],
+         [base[0]*sh, base[1]*sh, base[2]*sh], .92 * st.leafSol, [90,235,210], .6 * (1 - .7 * st.leafSol));
+  }
+}
+
+/* ---------- الوردة (6 بتلات) ---------- */
+function tepalTable(L, bloom) {
+  const N = 32, a0 = .12 + .93 * bloom, curl = .06 + .62 * bloom, bulge = .20 * (1 - bloom);
+  const r = [], z = [], a = []; let rr = 0, zz = 0;
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, ang = a0 + curl * u * u;
+    a.push(ang); r.push(rr + L * bulge * Math.sin(Math.PI * Math.pow(u, .8))); z.push(zz);
+    rr += Math.sin(ang) * L / N; zz += Math.cos(ang) * L / N;
+  }
+  return { r, z, a, N };
+}
+function petalColor(u, v, face, lam) {
+  let r = lerp(112, 165, u), g = lerp(78, 128, u), b = 255;
+  const edge = Math.pow(Math.abs(v), 3);
+  r = lerp(r, 195, edge * .3); g = lerp(g, 160, edge * .3);
+  const m = sm(.7, .15, u) * (1 - .3 * Math.abs(v));               // اللون الأحمر/الوردي في النص
+  r = lerp(r, 190, m * .95); g = lerp(g, 22, m * .95); b = lerp(b, 125, m * .8);
+  const deep = sm(.22, 0, u); r = lerp(r, 150, deep * .8); g = lerp(g, 12, deep * .8); b = lerp(b, 95, deep * .8);
+  if (!face) { r = lerp(r, 150, .45); g = lerp(g, 120, .45); b = lerp(b, 250, .2); }
+  const s = face ? .66 + .6 * lam : .5 + .5 * lam;
+  return [Math.min(255, r * s), Math.min(255, g * s), Math.min(255, b * s)];
+}
+function addFlower(F, fi, pos, scl, bloom, sol, wireA) {
+  const L = .86 * F.size * scl * FLOWER_SCALE;
+  const zc = norm(F.dir); let xc = cross([0,1,0], zc); if (len(xc) < .01) xc = [1,0,0]; xc = norm(xc);
+  const yc = cross(zc, xc);
+  const toW = (X, Y, Z) => [pos[0]+X*xc[0]+Y*yc[0]+Z*zc[0], pos[1]+X*xc[1]+Y*yc[1]+Z*zc[1], pos[2]+X*xc[2]+Y*yc[2]+Z*zc[2]];
+  const NU = 14, NV = 6;   // تفاصيل البتلة (اتخففت عشان الموبايل مع كترة الورود)
+  const tabs = [tepalTable(L, bloom), tepalTable(L * .96, bloom)];
+  const cup = .9 * (.3 + .7 * bloom);
+  const rs = rng(100 + fi * 13);
+  let cenZ = 0, cnt = 0;
+
+  for (let w = 0; w < 2; w++) for (let k = 0; k < 3; k++) {
+    const az = (w * 60 + k * 120 + fi * 17) * Math.PI / 180, Wd = (w ? .56 : .46) * L, T = tabs[w];
+    const ca = Math.cos(az), sa = Math.sin(az);
+    const mark = items.length;      // كل بتلة هتتجمع في قطعة واحدة عشان الترتيب يبقى صح
+    const G = [], P = [];
+    for (let i = 0; i <= NU; i++) { G[i] = []; P[i] = []; const ti = Math.round(i * T.N / NU), u = ti / T.N;
+      const wd = Wd * (Math.pow(Math.sin(Math.PI * Math.pow(u, .6)), 1.1) + .04 * (1 - u));
+      for (let j = 0; j <= NV; j++) {
+        const v = -1 + 2 * j / NV, lat = v * wd, lift = cup * lat * lat;
+        const rad = T.r[ti] - Math.cos(T.a[ti]) * lift;
+        const X = ca * rad - sa * lat, Y = sa * rad + ca * lat, Z = T.z[ti] + Math.sin(T.a[ti]) * lift;
+        G[i][j] = toCam(toW(X, Y, Z)); P[i][j] = proj(G[i][j]);
+      } }
+    const faceRow = [];
+    for (let i = 0; i < NU; i++) for (let j = 0; j < NV; j++) {
+      const a = G[i][j], b = G[i+1][j], d = G[i][j+1], e = G[i+1][j+1];
+      const nn = norm(quadNormalCam(a, b, d)), face = nn[2] > 0, lam = Math.abs(dot(nn, LD));
+      if (j === NV >> 1) faceRow[i] = face;
+      let col = petalColor((i + .5) / NU, -1 + 2 * (j + .5) / NV, face, lam);
+      const uu = (i + .5) / NU, pinkA = face ? .62 * st.pk * (1 - sol) * sm(.5, .15, uu) : 0, fa = Math.max(sol, pinkA);
+      if (pinkA > sol) col = [205 * (.7 + .4 * lam), 45 * (.7 + .4 * lam), 150 * (.7 + .4 * lam)];
+      const zq = (a[2]+b[2]+d[2]+e[2]) / 4; cenZ += zq; cnt++;
+      quad(zq, [P[i][j][0],P[i][j][1],P[i+1][j][0],P[i+1][j][1],P[i+1][j+1][0],P[i+1][j+1][1],P[i][j+1][0],P[i][j+1][1]],
+           col, fa, [175,135,255], wireA * (1 - .85 * sol));
+    }
+    if (wireA * (1 - sol) > .05) { const tp = P[NU][NV >> 1], ta = wireA * (1 - sol); items.push({ z: G[NU][NV >> 1][2] + .01, f() { ctx.fillStyle = `rgba(225,205,255,${ta})`; ctx.beginPath(); ctx.arc(tp[0], tp[1], 1.8, 0, TAU); ctx.fill(); } }); }
+    // النقط الغامقة (spots) على البتلة
+    if (st.spots > .01) for (let s = 0; s < 24; s++) {
+      const u = .05 + rs() * .55, v = (rs() * 2 - 1) * .7 * (1 - u * .5);
+      const ti = u * T.N, i0 = Math.min(T.N - 1, ti | 0), f = ti - i0;
+      const r_ = lerp(T.r[i0], T.r[i0+1], f), z_ = lerp(T.z[i0], T.z[i0+1], f), a_ = lerp(T.a[i0], T.a[i0+1], f);
+      const wd = Wd * (Math.pow(Math.sin(Math.PI * Math.pow(u, .6)), 1.1) + .04 * (1 - u)), lat = v * wd, lift = cup * lat * lat;
+      const rad = r_ - Math.cos(a_) * lift;
+      const c = toCam(toW(ca * rad - sa * lat, sa * rad + ca * lat, z_ + Math.sin(a_) * lift)), p = proj(c);
+      if (!faceRow[Math.min(NU - 1, (u * NU) | 0)]) continue;
+      const rr = (.012 + .008 * rs()) * S * p[2] * F.size * scl, al = st.spots * sol * .95;
+      items.push({ z: c[2] + .004, f() { ctx.fillStyle = `rgba(110,8,55,${al})`; ctx.beginPath(); ctx.arc(p[0], p[1], rr, 0, TAU); ctx.fill(); } });
+    }
+    const part = items.splice(mark);
+    part.sort((a, b) => a.z - b.z);
+    let zs = 0; part.forEach(q => zs += q.z);
+    items.push({ z: zs / part.length, f() { for (let q = 0; q < part.length; q++) part[q].f(); } });
+  }
+  // توهج خلف الوردة
+  const gc = proj(toCam(toW(0, 0, L * .4)));
+  glows.push({ x: gc[0], y: gc[1], r: L * 1.9 * S * gc[2], a: .3 * sol });
+
+  // الأسدية (الخيوط) والمدقة
+  const stm = st.stamen * sm(.3, .9, bloom);
+  if (stm > .01) {
+    for (let k = 0; k < 7; k++) {
+      const pis = k === 6, az = pis ? .4 : (k * 60 + 30) * Math.PI / 180 + fi, pts = [];
+      for (let i = 0; i <= 8; i++) { const s = i / 8;
+        const rad = (pis ? L * .38 * Math.pow(s, 1.7) * stm : L * (.52 + .06 * (k % 2)) * Math.pow(s, 1.4) * stm) * INNER;
+        const zz  = L * .1 + (pis ? L * .78 * stm * s : L * .7 * stm * s - L * .14 * s * s) * INNER;
+        const c = toCam(toW(Math.cos(az) * rad, Math.sin(az) * rad, zz)); pts.push(proj(c)); pts[i].z = c[2]; }
+      const tip = pts[8], pv = pts[7], ang = Math.atan2(tip[1] - pv[1], tip[0] - pv[0]);
+      items.push({ z: tip.z + .02, f() {
+        ctx.lineCap = 'round'; ctx.strokeStyle = pis ? 'rgba(236,230,215,.95)' : 'rgba(205,235,185,.9)';
+        ctx.lineWidth = Math.max(1, (pis ? .012 : .008) * S * tip[2] * F.size); ctx.beginPath();
+        pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke();
+        if (pis) { ctx.fillStyle = '#d63a7a'; ctx.beginPath(); ctx.arc(tip[0], tip[1], .013 * S * tip[2] * F.size, 0, TAU); ctx.fill(); }
+        else { ctx.save(); ctx.translate(tip[0], tip[1]); ctx.rotate(ang); ctx.fillStyle = '#a8431f'; ctx.strokeStyle = '#5c1a10'; ctx.lineWidth = 1;
+          ctx.beginPath(); ctx.ellipse(0, 0, .045 * L * S * tip[2] * 1.1, .010 * S * tip[2] * F.size * 1.3, 0, 0, TAU); ctx.fill(); ctx.stroke(); ctx.restore(); }
+      }});
+    }
+  }
+}
+
+/* ---------- البرعم ---------- */
+function addBud(pos, dir, size, grow, wireA, sol) {
+  const zc = norm(dir); let xc = cross([0,1,0], zc); if (len(xc) < .01) xc = [1,0,0]; xc = norm(xc);
+  const yc = cross(zc, xc), Lb = .95 * size * grow, Rb = .17 * size * grow, NS = 16, NP = 18, G = [], P = [];
+  const toW = (X, Y, Z) => [pos[0]+X*xc[0]+Y*yc[0]+Z*zc[0], pos[1]+X*xc[1]+Y*yc[1]+Z*zc[1], pos[2]+X*xc[2]+Y*yc[2]+Z*zc[2]];
+  for (let i = 0; i <= NS; i++) { G[i] = []; P[i] = []; const s = i / NS,
+      rad = Rb * Math.pow(Math.sin(Math.PI * Math.pow(s, .72)), .85);
+    for (let j = 0; j <= NP; j++) { const ph = j / NP * TAU, rr = rad * (1 + .09 * Math.cos(6 * ph * 18 / 18));
+      G[i][j] = toCam(toW(rr * Math.cos(ph), rr * Math.sin(ph), s * Lb)); P[i][j] = proj(G[i][j]); } }
+  for (let i = 0; i < NS; i++) for (let j = 0; j < NP; j++) {
+    const a = G[i][j], b = G[i+1][j], d = G[i][j+1], e = G[i+1][j+1];
+    const nn = norm(quadNormalCam(a, b, d)), lam = Math.abs(dot(nn, LD)), s = (i + .5) / NS, sh = .6 + .55 * lam;
+    const m = sm(.25, .75, s), col = [lerp(70, 205, m) * sh, lerp(135, 115, m) * sh, lerp(115, 235, m) * sh];
+    quad((a[2]+b[2]+d[2]+e[2]) / 4, [P[i][j][0],P[i][j][1],P[i+1][j][0],P[i+1][j][1],P[i+1][j+1][0],P[i+1][j+1][1],P[i][j+1][0],P[i][j+1][1]],
+         col, .95 * sol, [175,135,255], wireA * (1 - .85 * sol));
+  }
+}
+
+/* =====================================================================
+   6) الخلفية + المطر + الجزيئات
+   ===================================================================== */
+function drawBackground() {
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#05010b'); g.addColorStop(1, lerp2('#0b0216', '#1b0633', st.aura));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const r = ctx.createRadialGradient(W/2, H*.52, 0, W/2, H*.52, Math.max(W, H) * .62);
+  r.addColorStop(0, `rgba(95,30,150,${.5 * st.aura})`); r.addColorStop(.55, `rgba(45,10,80,${.35 * st.aura})`); r.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
+  // بريق بنفسجي تحت الشاشة أيام الكود
+  const b = ctx.createRadialGradient(W/2, H*.95, 0, W/2, H*.95, W*.8);
+  b.addColorStop(0, `rgba(120,40,200,${.35 * (1 - st.aura)})`); b.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = b; ctx.fillRect(0, 0, W, H);
+}
+function lerp2(a, b, k) { const pa = [1,3,5].map(i => parseInt(a.substr(i,2),16)), pb = [1,3,5].map(i => parseInt(b.substr(i,2),16));
+  return `rgb(${pa.map((v,i)=>v+(pb[i]-v)*k|0).join(',')})`; }
+
+const RAIN = (() => { const r = rng(5); return Array.from({ length: 150 }, () => ({
+  x: .5 + (r() + r() + r() - 1.5) * .35, y: r(), sp: .6 + r() * 1.6, l: .05 + r() * .18, a: .2 + r() * .5 })); })();
+function drawRain(env) {
+  if (env < .01) return;
+  ctx.lineCap = 'butt';
+  RAIN.forEach(d => { const y = ((d.y + t * d.sp * .5) % 1.3 - .15) * H, x = d.x * W, l = d.l * H * 1.4;
+    const f = 1 - Math.min(1, Math.abs(x - W / 2) / (W * .6));
+    const g = ctx.createLinearGradient(0, y - l, 0, y); g.addColorStop(0, 'rgba(180,140,255,0)'); g.addColorStop(1, `rgba(215,190,255,${d.a * env * f})`);
+    ctx.strokeStyle = g; ctx.lineWidth = 2 + d.a * 6; ctx.beginPath(); ctx.moveTo(x, y - l); ctx.lineTo(x, y); ctx.stroke(); });
+}
+function drawBeam(env) {         // العمود المضيء اللي بيسبق ظهور الساق
+  if (env < .01) return;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  const top = H * (1 - .75 * sm(7.5, 8.5, t));
+  [[W * .16, .22], [W * .045, .55], [W * .014, .95]].forEach(([w, a]) => {
+    const g = ctx.createLinearGradient(0, H, 0, top);
+    g.addColorStop(0, `rgba(235,230,255,${a * env})`); g.addColorStop(.55, `rgba(150,110,255,${a * env * .6})`); g.addColorStop(1, 'rgba(120,80,255,0)');
+    ctx.fillStyle = g; ctx.fillRect(W / 2 - w / 2, top, w, H - top); });
+  ctx.restore();
+}
+function addParticles() {
+  if (st.parts < .01) return;
+  PARTS.forEach(p => {
+    const y = ((p.y + 2.2 + t * p.sp) % 4.4) - 2.2, x = p.x + Math.sin(t * .4 + p.ph) * .12;
+    const c = toCam([x, y, p.z]), s = proj(c), tw = .55 + .45 * Math.sin(t * 2 + p.ph), a = st.parts * tw;
+    items.push({ z: c[2], f() {
+      ctx.fillStyle = `rgba(${p.c[0]},${p.c[1]},${p.c[2]},${a * .18})`; ctx.beginPath(); ctx.arc(s[0], s[1], p.sz * 3 * s[2], 0, TAU); ctx.fill();
+      ctx.fillStyle = `rgba(${p.c[0]},${p.c[1]},${p.c[2]},${a})`; ctx.beginPath(); ctx.arc(s[0], s[1], p.sz * s[2], 0, TAU); ctx.fill(); }});
+  });
+}
+
+/* =====================================================================
+   7) الحلقة الرئيسية (كل فريم)
+   ===================================================================== */
+
+
+function frame() {
+  t = START + (FIX !== null ? +FIX : (performance.now() - t0) / 1000);   // START: بنقفز مباشرة لمرحلة الوردة
+  timeline();
+  camRY = .22 * Math.sin(t * .35) * (.3 + .7 * st.wire);
+  camRX = .1 + .05 * Math.sin(t * .27);
+  items = []; glows = [];
+
+  drawBackground();
+
+  drawRain(sm(7.3, 7.9, t) * (1 - sm(8.5, 9.3, t)));
+  drawBeam(sm(7.5, 8.0, t) * (1 - sm(8.7, 9.4, t)));
+
+  // --- السيقان والورق ---
+  const g = STEMS.map(s => sm(s.t0, s.t0 + 1.0, t));
+  STEMS.forEach((s, i) => addStem(s, g[i]));
+  LEAVES.forEach(l => { const gr = clamp((g[l.si] - l.sp) * 4) * st.leaf; if (gr < .02) return;
+    const A = bez(STEMS[l.si].p, l.sp); addLeaf(A, l.az, l.L * gr, l.Wd, l.droop); });
+
+  // --- الورود والبراعم ---
+  STEMS.forEach((s, i) => {
+    if (st.wire < .01 || g[i] < .6) return;
+    const tip = bez(s.p, Math.min(1, g[i]));
+    if (s.flower !== undefined) {
+      const F = FLOWERS[s.flower], b = ease(clamp((st.bloom - F.delay) / (1 - F.delay)));
+      const sol = sm(11.5 + F.delay * 1.5, 12.9 + F.delay * 1.5, t);
+      addFlower(F, s.flower, tip, .35 + .65 * st.grow, b, sol, st.wire * .85);
+    } else addBud(tip, s.bud.dir, s.bud.size, .3 + .7 * st.grow, st.wire * .85, sm(11.5 + i * .15, 12.9 + i * .15, t));
+  });
+  addParticles();
+
+  // --- الرسم الفعلي ---
+  glows.forEach(o => { const r = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r);
+    r.addColorStop(0, `rgba(150,90,255,${o.a})`); r.addColorStop(1, 'rgba(150,90,255,0)'); ctx.fillStyle = r; ctx.fillRect(o.x - o.r, o.y - o.r, o.r * 2, o.r * 2); });
+  items.sort((a, b) => a.z - b.z);
+  ctx.lineJoin = 'round';
+  for (let i = 0; i < items.length; i++) items[i].f();
+
   requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
+frame();
+})();
 
 </script>
 </body>
